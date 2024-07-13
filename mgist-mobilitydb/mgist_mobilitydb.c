@@ -99,7 +99,145 @@ enum stbox_state {
 extern ArrayType *stboxarr_to_array(STBox *boxes, int count);
 
 /*****************************************************************************
- * ME-GiST extract methods
+ * ME-GiST consistent methods for spanset types
+ *****************************************************************************/
+
+/**
+ * @brief Return true if a recheck is necessary depending on the strategy
+ */
+bool
+span_mgist_recheck(StrategyNumber strategy)
+{
+  /* These operators are based on bounding boxes */
+  if (strategy == RTLeftStrategyNumber ||
+      strategy == RTBeforeStrategyNumber ||
+      strategy == RTOverLeftStrategyNumber ||
+      strategy == RTOverBeforeStrategyNumber ||
+      strategy == RTRightStrategyNumber ||
+      strategy == RTAfterStrategyNumber ||
+      strategy == RTOverRightStrategyNumber ||
+      strategy == RTOverAfterStrategyNumber ||
+      strategy == RTKNNSearchStrategyNumber)
+    return false;
+  return true;
+}
+
+/**
+ * @brief Transform the query argument into a span
+ */
+static bool
+span_mgist_get_span(FunctionCallInfo fcinfo, Span *result, Oid typid)
+{
+  meosType type = oid_type(typid);
+  if (span_basetype(type))
+  {
+    /* Since function span_gist_consistent is strict, value is not NULL */
+    Datum value = PG_GETARG_DATUM(1);
+    meosType spantype = basetype_spantype(type);
+    span_set(value, value, true, true, type, spantype, result);
+  }
+  else if (set_type(type))
+  {
+    Set *s = PG_GETARG_SET_P(1);
+    set_set_span(s, result);
+  }
+  else if (span_type(type))
+  {
+    Span *s = PG_GETARG_SPAN_P(1);
+    if (s == NULL)
+      PG_RETURN_BOOL(false);
+    memcpy(result, s, sizeof(Span));
+  }
+  else if (spanset_type(type))
+  {
+    Datum psdatum = PG_GETARG_DATUM(1);
+    spanset_span_slice(psdatum, result);
+  }
+  /* For temporal types whose bounding box is a timestamptz span */
+  else if (talpha_type(type))
+  {
+    Datum tempdatum = PG_GETARG_DATUM(1);
+    Temporal *temp = temporal_slice(tempdatum);
+    temporal_set_tstzspan(temp, result);
+  }
+  else
+    elog(ERROR, "Unsupported type for indexing: %d", type);
+  return true;
+}
+
+PGDLLEXPORT Datum Spanset_mgist_consistent(PG_FUNCTION_ARGS);
+PG_FUNCTION_INFO_V1(Spanset_mgist_consistent);
+/**
+ * @brief MGiST consistent method for spanset types
+ */
+Datum
+Spanset_mgist_consistent(PG_FUNCTION_ARGS)
+{
+  GISTENTRY *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
+  StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
+  Oid typid = PG_GETARG_OID(3);
+  bool *recheck = (bool *) PG_GETARG_POINTER(4);
+  bool result;
+  const Span *key = DatumGetSpanP(entry->key);
+  Span query;
+
+  /* Determine whether the operator is exact */
+  // *recheck = span_index_recheck(strategy);
+  *recheck = span_mgist_recheck(strategy);
+
+  if (key == NULL)
+    PG_RETURN_BOOL(false);
+
+  /* Transform the query into a box */
+  if (! span_gist_get_span(fcinfo, &query, typid))
+    PG_RETURN_BOOL(false);
+
+  if (GIST_LEAF(entry))
+    result = span_index_consistent_leaf(key, &query, strategy);
+  else
+    result = span_gist_consistent(key, &query, strategy);
+
+  PG_RETURN_BOOL(result);
+}
+
+/*****************************************************************************
+ * ME-GiST compress method for spanset types
+ *****************************************************************************/
+
+PGDLLEXPORT Datum Spanset_mgist_compress(PG_FUNCTION_ARGS);
+PG_FUNCTION_INFO_V1(Spanset_mgist_compress);
+/**
+ * @brief MGiST compress method for span sets
+ */
+Datum
+Spanset_mgist_compress(PG_FUNCTION_ARGS)
+{
+  GISTENTRY *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
+  PG_RETURN_POINTER(entry);
+}
+
+/*****************************************************************************
+ * ME-GiST extract method for spanset types
+ *****************************************************************************/
+
+PGDLLEXPORT Datum Spanset_mgist_extract(PG_FUNCTION_ARGS);
+PG_FUNCTION_INFO_V1(Spanset_mgist_extract);
+/**
+ * @brief MGiST extract method for spanset types
+ */
+Datum
+spanset_mgist_extract(PG_FUNCTION_ARGS)
+{
+  SpanSet *ss = PG_GETARG_SPANSET_P(0);
+  int32 *nkeys = (int32 *) PG_GETARG_POINTER(1);
+  Span **spans = spanset_spans(ss);
+  *nkeys = ss->count;
+  PG_FREE_IF_COPY(ss, 0);
+  PG_RETURN_POINTER(spans);
+}
+
+/*****************************************************************************
+ * ME-GiST compress methods for temporal points
  *****************************************************************************/
 
 PG_FUNCTION_INFO_V1(Tpoint_mgist_compress);
@@ -158,7 +296,7 @@ Tpoint_mgist_query_options(PG_FUNCTION_ARGS)
 }
 
 /*****************************************************************************
- * ME-GiST extract methods
+ * ME-GiST extract methods for temporal types
  *****************************************************************************/
 
 static STBox *
