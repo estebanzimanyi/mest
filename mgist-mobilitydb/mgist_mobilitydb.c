@@ -52,6 +52,40 @@ PG_MODULE_MAGIC;
           ((MGIST_BOXES_Options *) PG_GET_OPCLASS_OPTIONS())->num_boxes : \
           MGIST_EXTRACT_BOXES_DEFAULT)
 
+/*****************************************************************************
+ * Additional operator strategy numbers used in the GiST and SP-GiST temporal
+ * opclasses with respect to those defined in the file stratnum.h
+ *****************************************************************************/
+
+#define RTOverBeforeStrategyNumber    28    /* for &<# */
+#define RTBeforeStrategyNumber        29    /* for <<# */
+#define RTAfterStrategyNumber         30    /* for #>> */
+#define RTOverAfterStrategyNumber     31    /* for #&> */
+#define RTOverFrontStrategyNumber     32    /* for &</ */
+#define RTFrontStrategyNumber         33    /* for <</ */
+#define RTBackStrategyNumber          34    /* for />> */
+#define RTOverBackStrategyNumber      35    /* for /&> */
+
+/*****************************************************************************
+ * fmgr macros for span types
+ *****************************************************************************/
+
+#define DatumGetSpanP(X)           ((Span *) DatumGetPointer(X))
+#define SpanPGetDatum(X)           PointerGetDatum(X)
+#define PG_GETARG_SPAN_P(X)        DatumGetSpanP(PG_GETARG_DATUM(X))
+#define PG_RETURN_SPAN_P(X)        PG_RETURN_POINTER(X)
+
+#if MEOS
+  #define DatumGetSpanSetP(X)      ((SpanSet *) DatumGetPointer(X))
+#else
+  #define DatumGetSpanSetP(X)      ((SpanSet *) PG_DETOAST_DATUM(X))
+#endif /* MEOS */
+#define SpanSetPGetDatum(X)        PointerGetDatum(X)
+#define PG_GETARG_SPANSET_P(X)     ((SpanSet *) PG_GETARG_VARLENA_P(X))
+#define PG_RETURN_SPANSET_P(X)     PG_RETURN_POINTER(X)
+
+/*****************************************************************************/
+
 /* gist_int_ops opclass options */
 typedef struct
 {
@@ -99,6 +133,12 @@ enum stbox_state {
 extern ArrayType *stboxarr_to_array(STBox *boxes, int count);
 
 /*****************************************************************************
+ * Prototypes
+ *****************************************************************************/
+
+static bool span_mgist_recheck(StrategyNumber strategy);
+
+/*****************************************************************************
  * ME-GiST consistent methods for spanset types
  *****************************************************************************/
 
@@ -136,11 +176,11 @@ span_mgist_get_span(FunctionCallInfo fcinfo, Span *result, Oid typid)
     meosType spantype = basetype_spantype(type);
     span_set(value, value, true, true, type, spantype, result);
   }
-  else if (set_type(type))
-  {
-    Set *s = PG_GETARG_SET_P(1);
-    set_set_span(s, result);
-  }
+  // else if (set_type(type))
+  // {
+    // Set *s = PG_GETARG_SET_P(1);
+    // set_set_span(s, result);
+  // }
   else if (span_type(type))
   {
     Span *s = PG_GETARG_SPAN_P(1);
@@ -163,6 +203,89 @@ span_mgist_get_span(FunctionCallInfo fcinfo, Span *result, Oid typid)
   else
     elog(ERROR, "Unsupported type for indexing: %d", type);
   return true;
+}
+
+/**
+ * @brief Leaf-level consistency for span types
+ *
+ * @param[in] key Element in the index
+ * @param[in] query Value being looked up in the index
+ * @param[in] strategy Operator of the operator class being applied
+ * @note This function is used for both GiST and SP-GiST indexes
+ */
+bool
+span_index_consistent_leaf(const Span *key, const Span *query,
+  StrategyNumber strategy)
+{
+  switch (strategy)
+  {
+    case RTOverlapStrategyNumber:
+      return over_span_span(key, query);
+    case RTContainsStrategyNumber:
+      return cont_span_span(key, query);
+    case RTContainedByStrategyNumber:
+      return cont_span_span(query, key);
+    case RTEqualStrategyNumber:
+    case RTSameStrategyNumber:
+      return span_eq(key, query);
+    case RTAdjacentStrategyNumber:
+      return adj_span_span(key, query);
+    case RTLeftStrategyNumber:
+    case RTBeforeStrategyNumber:
+      return lf_span_span(key, query);
+    case RTOverLeftStrategyNumber:
+    case RTOverBeforeStrategyNumber:
+      return ovlf_span_span(key, query);
+    case RTRightStrategyNumber:
+    case RTAfterStrategyNumber:
+      return ri_span_span(key, query);
+    case RTOverRightStrategyNumber:
+    case RTOverAfterStrategyNumber:
+      return ovri_span_span(key, query);
+    default:
+      elog(ERROR, "unrecognized span strategy: %d", strategy);
+      return false;    /* keep compiler quiet */
+  }
+}
+
+/**
+ * @brief GiST internal-page consistency for span types
+ *
+ * @param[in] key Element in the index
+ * @param[in] query Value being looked up in the index
+ * @param[in] strategy Operator of the operator class being applied
+ */
+bool
+span_gist_consistent(const Span *key, const Span *query,
+  StrategyNumber strategy)
+{
+  switch (strategy)
+  {
+    case RTOverlapStrategyNumber:
+    case RTContainedByStrategyNumber:
+      return over_span_span(key, query);
+    case RTContainsStrategyNumber:
+    case RTEqualStrategyNumber:
+    case RTSameStrategyNumber:
+      return cont_span_span(key, query);
+    case RTAdjacentStrategyNumber:
+      return adj_span_span(key, query) || overlaps_span_span(key, query);
+    case RTLeftStrategyNumber:
+    case RTBeforeStrategyNumber:
+      return ! ovri_span_span(key, query);
+    case RTOverLeftStrategyNumber:
+    case RTOverBeforeStrategyNumber:
+      return ! ri_span_span(key, query);
+    case RTRightStrategyNumber:
+    case RTAfterStrategyNumber:
+      return ! ovlf_span_span(key, query);
+    case RTOverRightStrategyNumber:
+    case RTOverAfterStrategyNumber:
+      return ! lf_span_span(key, query);
+    default:
+      elog(ERROR, "unrecognized span strategy: %d", strategy);
+      return false;    /* keep compiler quiet */
+  }
 }
 
 PGDLLEXPORT Datum Spanset_mgist_consistent(PG_FUNCTION_ARGS);
@@ -189,7 +312,7 @@ Spanset_mgist_consistent(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(false);
 
   /* Transform the query into a box */
-  if (! span_gist_get_span(fcinfo, &query, typid))
+  if (! span_mgist_get_span(fcinfo, &query, typid))
     PG_RETURN_BOOL(false);
 
   if (GIST_LEAF(entry))
