@@ -22,6 +22,18 @@ CREATE FUNCTION multirange_mspgist_compress(internal)
   RETURNS internal
   AS 'MODULE_PATHNAME'
   LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION mspg_range_quad_inner_consistent(internal, internal)
+  RETURNS internal
+  AS 'MODULE_PATHNAME'
+  LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION mspg_range_quad_leaf_consistent(internal, internal)
+  RETURNS internal
+  AS 'MODULE_PATHNAME'
+  LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION multirange_mspgist_extract_options(internal)
+  RETURNS void
+  AS 'MODULE_PATHNAME'
+  LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION multirange_mspgist_extract(internal, internal, internal)
   RETURNS internal
   AS 'MODULE_PATHNAME'
@@ -56,9 +68,10 @@ DEFAULT FOR TYPE anymultirange USING mspgist AS
     FUNCTION  1  spg_range_quad_config(internal, internal),
     FUNCTION  2  spg_range_quad_choose(internal, internal),
     FUNCTION  3  spg_range_quad_picksplit(internal, internal),
-    FUNCTION  4  spg_range_quad_inner_consistent(internal, internal),
-    FUNCTION  5  spg_range_quad_leaf_consistent(internal, internal),
+    FUNCTION  4  mspg_range_quad_inner_consistent(internal, internal),
+    FUNCTION  5  mspg_range_quad_leaf_consistent(internal, internal),
     FUNCTION  6  multirange_mspgist_compress(internal),
+    FUNCTION  7  multirange_mspgist_extract_options(internal),
     FUNCTION  8  multirange_mspgist_extract(internal, internal, internal);
     
 /*****************************************************************************/
