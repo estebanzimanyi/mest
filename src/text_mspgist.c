@@ -91,7 +91,13 @@ typedef struct spgNodePtr
 } spgNodePtr;
 
 
-Datum
+/*****************************************************************************/
+
+PG_FUNCTION_INFO_V1(spg_text_config);
+/**
+ * Multi-Entry SP-GiST leaf consistent method for texts
+ */
+PGDLLEXPORT Datum
 spg_text_config(PG_FUNCTION_ARGS)
 {
 	/* spgConfigIn *cfgin = (spgConfigIn *) PG_GETARG_POINTER(0); */
@@ -103,6 +109,8 @@ spg_text_config(PG_FUNCTION_ARGS)
 	cfg->longValuesOK = true;	/* suffixing will shorten long values */
 	PG_RETURN_VOID();
 }
+
+/*****************************************************************************/
 
 /*
  * Form a text datum from the given not-necessarily-null-terminated string,
@@ -179,7 +187,11 @@ searchChar(Datum *nodeLabels, int nNodes, int16 c, int *i)
 	return false;
 }
 
-Datum
+PG_FUNCTION_INFO_V1(spg_text_choose);
+/**
+ * Multi-Entry SP-GiST leaf consistent method for texts
+ */
+PGDLLEXPORT Datum
 spg_text_choose(PG_FUNCTION_ARGS)
 {
 	spgChooseIn *in = (spgChooseIn *) PG_GETARG_POINTER(0);
@@ -318,6 +330,8 @@ spg_text_choose(PG_FUNCTION_ARGS)
 	PG_RETURN_VOID();
 }
 
+/*****************************************************************************/
+
 /* qsort comparator to sort spgNodePtr structs by "c" */
 static int
 cmpNodePtr(const void *a, const void *b)
@@ -328,7 +342,11 @@ cmpNodePtr(const void *a, const void *b)
 	return aa->c - bb->c;
 }
 
-Datum
+PG_FUNCTION_INFO_V1(spg_text_picksplit);
+/**
+ * Multi-Entry SP-GiST leaf consistent method for texts
+ */
+PGDLLEXPORT Datum
 spg_text_picksplit(PG_FUNCTION_ARGS)
 {
 	spgPickSplitIn *in = (spgPickSplitIn *) PG_GETARG_POINTER(0);
@@ -421,8 +439,14 @@ spg_text_picksplit(PG_FUNCTION_ARGS)
 	PG_RETURN_VOID();
 }
 
-Datum
-spg_text_inner_consistent(PG_FUNCTION_ARGS)
+/*****************************************************************************/
+
+PG_FUNCTION_INFO_V1(mspg_text_inner_consistent);
+/**
+ * Multi-Entry SP-GiST leaf consistent method for texts
+ */
+PGDLLEXPORT Datum
+mspg_text_inner_consistent(PG_FUNCTION_ARGS)
 {
 	spgInnerConsistentIn *in = (spgInnerConsistentIn *) PG_GETARG_POINTER(0);
 	spgInnerConsistentOut *out = (spgInnerConsistentOut *) PG_GETARG_POINTER(1);
@@ -569,8 +593,14 @@ spg_text_inner_consistent(PG_FUNCTION_ARGS)
 	PG_RETURN_VOID();
 }
 
-Datum
-spg_text_leaf_consistent(PG_FUNCTION_ARGS)
+/*****************************************************************************/
+
+PG_FUNCTION_INFO_V1(mspg_text_leaf_consistent);
+/**
+ * Multi-Entry SP-GiST leaf consistent method for texts
+ */
+PGDLLEXPORT Datum
+mspg_text_leaf_consistent(PG_FUNCTION_ARGS)
 {
 	spgLeafConsistentIn *in = (spgLeafConsistentIn *) PG_GETARG_POINTER(0);
 	spgLeafConsistentOut *out = (spgLeafConsistentOut *) PG_GETARG_POINTER(1);
@@ -698,3 +728,5 @@ spg_text_leaf_consistent(PG_FUNCTION_ARGS)
 
 	PG_RETURN_BOOL(res);
 }
+
+/*****************************************************************************/

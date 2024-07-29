@@ -153,7 +153,7 @@ DEFAULT FOR TYPE anymultirange USING mspgist AS
     FUNCTION  8  multirange_mest_extract(internal, internal, internal);
 
 /******************************************************************************
- * Multi-Entry R-Tree for path type using MGiST
+ * Multi-Entry R-Tree for paths using MGiST
  ******************************************************************************/
 
 -- Operator functions 
@@ -326,7 +326,7 @@ DEFAULT FOR TYPE path USING mgist AS
     FUNCTION    12  mest_path_extract(internal, internal, internal);
 
 /******************************************************************************
- * Multi-Entry Quad-Tree for path types using MSPGiST
+ * Multi-Entry Quad-Tree for paths using MSPGiST
  ******************************************************************************/
 
 -- Functions
@@ -369,5 +369,42 @@ DEFAULT FOR TYPE path USING mspgist AS
     FUNCTION    6   mspg_path_compress(internal),
     FUNCTION    7   mest_path_options(internal),
     FUNCTION    8   mest_path_extract(internal, internal, internal);
+
+/******************************************************************************
+ * Multi-Entry Radix-Tree for texts using MSPGiST
+ ******************************************************************************/
+
+-- Functions
+
+CREATE FUNCTION mspg_text_inner_consistent(internal, internal)
+  RETURNS internal
+  AS 'MODULE_PATHNAME'
+  LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION mspg_text_leaf_consistent(internal, internal)
+  RETURNS internal
+  AS 'MODULE_PATHNAME'
+  LANGUAGE C IMMUTABLE STRICT;
+
+-- Opclasses
+
+CREATE OPERATOR CLASS text_mradixtree_ops
+DEFAULT FOR TYPE text USING mspgist AS
+    -- Storage
+    STORAGE     BOX,
+    -- Operators
+    OPERATOR    1   <  (text, text),
+    OPERATOR    2   <= (text, text),
+    OPERATOR    3   =  (text, text),
+    OPERATOR    4   >= (text, text),
+    OPERATOR    5   >  (text, text),
+    OPERATOR   28   ^@ (text, text),
+    -- Functions
+    FUNCTION    1   spg_text_config(internal, internal),
+    FUNCTION    2   spg_text_choose(internal, internal),
+    FUNCTION    3   spg_text_picksplit(internal, internal),
+    FUNCTION    4   mspg_text_inner_consistent(internal, internal),
+    FUNCTION    5   mspg_text_leaf_consistent(internal, internal);
+    -- FUNCTION    7   mspg_text_options(internal),
+    -- FUNCTION    8   mspg_text_extract(internal, internal, internal);
 
 /*****************************************************************************/

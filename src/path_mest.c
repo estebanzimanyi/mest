@@ -156,7 +156,7 @@ PG_FUNCTION_INFO_V1(path_construct);
 /**
  * PATH Constructor
  */
-Datum
+PGDLLEXPORT Datum
 path_construct(PG_FUNCTION_ARGS)
 {
   bool byval;
@@ -268,7 +268,7 @@ PG_FUNCTION_INFO_V1(path_left);
 /*
  * @brief Return true if the first path is to the left of the second one
  */
-Datum
+PGDLLEXPORT Datum
 path_left(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -300,7 +300,7 @@ PG_FUNCTION_INFO_V1(path_overleft);
  * @brief Return true if the first path does not extend to the right of the
  * second one
  */
-Datum
+PGDLLEXPORT Datum
 path_overleft(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -331,7 +331,7 @@ PG_FUNCTION_INFO_V1(path_right);
 /*
  * @brief Return true if the first path is to the right of the second one
  */
-Datum
+PGDLLEXPORT Datum
 path_right(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -363,7 +363,7 @@ PG_FUNCTION_INFO_V1(path_overright);
  * @brief Return true if the first path does not extend to the left of the
  * second one
  */
-Datum
+PGDLLEXPORT Datum
 path_overright(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -394,7 +394,7 @@ PG_FUNCTION_INFO_V1(path_below);
 /*
  * @brief Return true if the first path is below the second one
  */
-Datum
+PGDLLEXPORT Datum
 path_below(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -425,7 +425,7 @@ PG_FUNCTION_INFO_V1(path_overbelow);
 /*
  * @brief Return true if the first path does not extend above the second one
  */
-Datum
+PGDLLEXPORT Datum
 path_overbelow(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -456,7 +456,7 @@ PG_FUNCTION_INFO_V1(path_above);
 /*
  * @brief Return true if the first path is above the second one
  */
-Datum
+PGDLLEXPORT Datum
 path_above(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -487,7 +487,7 @@ PG_FUNCTION_INFO_V1(path_overabove);
 /*
  * @brief Return true if the first path does not extend below the second one
  */
-Datum
+PGDLLEXPORT Datum
 path_overabove(PG_FUNCTION_ARGS)
 {
 	PATH *p1 = PG_GETARG_PATH_P(0);
@@ -504,7 +504,7 @@ PG_FUNCTION_INFO_V1(gist_path_compress);
 /*
  * GiST compress for path: represent a path by its bounding box
  */
-Datum
+PGDLLEXPORT Datum
 gist_path_compress(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
@@ -534,7 +534,7 @@ PG_FUNCTION_INFO_V1(mgist_path_compress);
 /*
  * GiST compress for path: represent a path by its bounding box
  */
-Datum
+PGDLLEXPORT Datum
 mgist_path_compress(PG_FUNCTION_ARGS)
 {	
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
@@ -547,7 +547,7 @@ PG_FUNCTION_INFO_V1(gist_path_consistent);
 /*
  * The GiST Consistent method for paths
  */
-Datum
+PGDLLEXPORT Datum
 gist_path_consistent(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
@@ -688,7 +688,7 @@ PG_FUNCTION_INFO_V1(mest_path_extract);
 /*
  * extractValue support function
  */
-Datum
+PGDLLEXPORT Datum
 mest_path_extract(PG_FUNCTION_ARGS)
 {
 	PATH	   *path = PG_GETARG_PATH_P(0);
@@ -737,7 +737,7 @@ mest_path_extract(PG_FUNCTION_ARGS)
 
 PG_FUNCTION_INFO_V1(mspg_path_compress);
 /**
- * ME-SP-GiST compress method for path types
+ * ME-SP-GiST compress method for paths
  */
 PGDLLEXPORT Datum
 mspg_path_compress(PG_FUNCTION_ARGS)
@@ -1042,7 +1042,7 @@ pointToRectBoxDistance(Point *point, RectBox *rect_box)
 
 PG_FUNCTION_INFO_V1(mspg_path_quad_inner_consistent);
 /**
- * Multi-Entry SP-GiST inner consistent method for path types
+ * Multi-Entry SP-GiST inner consistent method for paths
  */
 PGDLLEXPORT Datum
 mspg_path_quad_inner_consistent(PG_FUNCTION_ARGS)
@@ -1233,7 +1233,7 @@ mspg_path_quad_inner_consistent(PG_FUNCTION_ARGS)
 
 PG_FUNCTION_INFO_V1(mspg_path_quad_leaf_consistent);
 /**
- * Multi-Entry SP-GiST leaf consistent method for path types
+ * Multi-Entry SP-GiST leaf consistent method for paths
  */
 PGDLLEXPORT Datum
 mspg_path_quad_leaf_consistent(PG_FUNCTION_ARGS)
