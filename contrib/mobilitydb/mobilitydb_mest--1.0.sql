@@ -859,17 +859,6 @@ CREATE FUNCTION tpoint_mest_tile_options(internal)
  * Segment split
  ******************************************************************************/
 
-/* Splitting function */
-
-CREATE FUNCTION stboxesSegs(tgeompoint, integer)
-  RETURNS stbox[]
-  AS 'MODULE_PATHNAME', 'Tpoint_stboxes_segs'
-  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
-
-/******************************************************************************/
-
-/* Index definition for segment split */
-
 CREATE FUNCTION tpoint_mest_segsplit(internal, internal, internal)
   RETURNS internal
   AS 'MODULE_PATHNAME', 'Tpoint_mest_segsplit'
